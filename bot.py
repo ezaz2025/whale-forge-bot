@@ -4,147 +4,172 @@ from datetime import datetime
 from flask import Flask
 from threading import Thread
 
-# =========================================
+# =====================================
 # BOT TOKEN
-# =========================================
+# =====================================
 
-TOKEN = "8906538078:AAGgeXgItJTrkwHmii0fF3J9kE-Sr7o4vsE"
-
-# =========================================
-# COINGECKO API KEY
-# =========================================
-
-API_KEY = "CG-qFVb3uzSANjMmWopxQUiPVjC"
-
-# =========================================
-# START BOT
-# =========================================
+TOKEN = "YOUR_BOT_TOKEN"
 
 bot = telebot.TeleBot(TOKEN)
 
-# =========================================
-# FLASK SERVER FOR RENDER
-# =========================================
+# =====================================
+# KEEP RENDER ONLINE
+# =====================================
 
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Whale Forge Bot is Running!"
+    return "Whale Forge Running!"
 
 def run():
-    app.run(host='0.0.0.0', port=10000)
+    app.run(host='0.0.0.0', port=8080)
 
-t = Thread(target=run)
-t.start()
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
 
-# =========================================
+keep_alive()
+
+# =====================================
 # START MESSAGE
-# =========================================
+# =====================================
 
 @bot.message_handler(commands=['start'])
 def start(message):
 
-    text = f"""
+    text = """
 🐋 Welcome to Whale Forge
 
-📊 Track any crypto instantly.
+📈 Track crypto prices whenever you want.
 
-Examples:
-• btc
-• 0.01 btc
-• 10 btc
-• eth
-• 0.76 sol
+Supported Examples:
+• BTC
+• ETH
+• SOL
+• XRP
 
-⚡ Powered by Crypto Lab
+⚡ Live Market Data
 👑 Owner: Ezaz
 """
 
     bot.reply_to(message, text)
 
-# =========================================
-# TRACKER
-# =========================================
+# =====================================
+# MAIN PRICE SYSTEM
+# =====================================
 
 @bot.message_handler(func=lambda message: True)
-def tracker(message):
+def crypto_price(message):
 
     try:
 
-        text = message.text.lower().strip().split()
+        user_input = message.text.lower().strip()
+        parts = user_input.split()
 
-        if len(text) == 2:
-            amount = float(text[0])
-            coin = text[1]
-        else:
-            amount = 1
-            coin = text[0]
+        amount = 1
+        coin_query = ""
 
-        url = f"https://api.coingecko.com/api/v3/coins/{coin}"
+        # -----------------------------
+        # INPUT DETECTION
+        # -----------------------------
 
-        headers = {
-            "x-cg-demo-api-key": API_KEY
-        }
+        if len(parts) == 1:
 
-        response = requests.get(url, headers=headers)
-        data = response.json()
+            try:
+                float(parts[0])
 
-        if 'market_data' not in data:
-            raise Exception("Coin not found")
+                bot.reply_to(
+                    message,
+                    "⚠️ Please enter a coin symbol.\nExample: BTC"
+                )
+                return
 
-        name = data['name']
-        symbol = data['symbol'].upper()
+            except:
+                coin_query = parts[0]
 
-        price = data['market_data']['current_price']['usd']
-        marketcap = data['market_data']['market_cap']['usd']
-        change = data['market_data']['price_change_percentage_24h']
+        elif len(parts) >= 2:
 
-        ath = data['market_data']['ath']['usd']
-        atl = data['market_data']['atl']['usd']
+            try:
+                amount = float(parts[0])
+                coin_query = parts[1]
 
-        rank = data['market_cap_rank']
+            except:
+                coin_query = parts[0]
 
-        total_value = amount * price
+        # -----------------------------
+        # SEARCH COIN FROM COINGECKO
+        # -----------------------------
 
-        time_now = datetime.now().strftime("%I:%M %p")
+        search_url = f"https://api.coingecko.com/api/v3/search?query={coin_query}"
 
-        msg = f"""
-🐋 Whale Forge
+        search_data = requests.get(search_url).json()
 
-🪙 Coin: {name} ({symbol})
+        if not search_data.get("coins"):
 
-💰 1 {symbol} = ${price:,.4f}
+            bot.reply_to(
+                message,
+                "⚠️ Coin not found.\nTry another symbol."
+            )
+            return
 
-🧮 {amount} {symbol} = ${total_value:,.4f}
+        coin = search_data["coins"][0]
 
-📈 24h Change: {change:.2f}%
-🏆 Rank: #{rank}
+        coin_id = coin["id"]
+        coin_name = coin["name"]
+        coin_symbol = coin["symbol"].upper()
 
-🚀 ATH: ${ath:,.2f}
-📉 ATL: ${atl:,.4f}
+        # -----------------------------
+        # GET LIVE PRICE
+        # -----------------------------
 
-💎 Market Cap:
-${marketcap:,.0f}
+        price_url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
 
-🕒 Updated:
-{time_now}
+        price_data = requests.get(price_url).json()
 
-👑 Owner: Ezaz
+        if coin_id not in price_data:
+
+            bot.reply_to(
+                message,
+                "⚠️ Price unavailable right now."
+            )
+            return
+
+        current_price = price_data[coin_id]["usd"]
+
+        total_value = current_price * amount
+
+        # -----------------------------
+        # FINAL REPLY
+        # -----------------------------
+
+        reply = f"""
+💰 {amount} {coin_symbol}
+
+💵 USD Value: ${total_value:,.4f}
+
+📈 Current Price:
+1 {coin_symbol} = ${current_price:,.4f}
+
+🪙 {coin_name}
+
+🕒 {datetime.now().strftime('%I:%M %p')}
+
+⚡ Powered by CoinGecko
 """
 
-        bot.reply_to(message, msg)
+        bot.reply_to(message, reply)
 
     except:
 
         bot.reply_to(
             message,
-            "⚠️ Coin not found.\n\nExamples:\nbtc\n0.01 btc\n10 eth"
+            "⚠️ Something went wrong.\nPlease try again."
         )
 
-# =========================================
+# =====================================
 # RUN BOT
-# =========================================
+# =====================================
 
 print("✅ Whale Forge Online")
 
