@@ -8,7 +8,7 @@ from threading import Thread
 # BOT TOKEN
 # =========================================
 
-TOKEN = "YOUR_BOT_TOKEN"
+TOKEN = "8906538078:AAHC-euZglqaydXPjgeWT-YoJSi1NeErPB8"
 
 # =========================================
 # COINGECKO API KEY
