@@ -168,10 +168,14 @@ def crypto_price(message):
             f"⚠️ Error: {str(e)}"
         )
 
-# =====================================
+# =========================
 # RUN BOT
-# =====================================
+# =========================
 
-print("✅ Whale Forge Online")
+def run_bot():
+    print("✅ Whale Forge Online")
+    bot.infinity_polling()
 
-bot.infinity_polling()
+Thread(target=run_bot).start()
+
+app.run(host="0.0.0.0", port=8080)
