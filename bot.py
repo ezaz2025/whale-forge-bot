@@ -8,7 +8,7 @@ from threading import Thread
 # BOT TOKEN
 # =========================================
 
-TOKEN = "8906538078:AAHC-euZglqaydXPjgeWT-YoJSi1NeErPB8"
+TOKEN = "8906538078:AAGgeXgItJTrkwHmii0fF3J9kE-Sr7o4vsE"
 
 # =========================================
 # COINGECKO API KEY
@@ -58,7 +58,7 @@ Examples:
 • sui
 • doge
 
-⚡ Powered by CoinGecko
+⚡ Powered by Crypto Lab
 👑 Owner: Ezaz
 """
 
