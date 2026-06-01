@@ -1,6 +1,5 @@
 import telebot
 import requests
-from datetime import datetime
 from flask import Flask
 from threading import Thread
 
@@ -8,19 +7,29 @@ from threading import Thread
 # BOT TOKEN
 # =====================================
 
-TOKEN = "YOUR_BOT_TOKEN"
+TOKEN = "8906538078:AAGgeXgItJTrkwHmii0fF3J9kE-Sr7o4vsE"
+
+# =====================================
+# COINGECKO API
+# =====================================
+
+COINGECKO_API_KEY = "CG-qFVb3uzSANjMmWopxQUiPVjC"
+
+# =====================================
+# BOT START
+# =====================================
 
 bot = telebot.TeleBot(TOKEN)
 
 # =====================================
-# KEEP RENDER ONLINE
+# FLASK SERVER
 # =====================================
 
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Whale Forge Running!"
+    return "Whale Forge Bot Running"
 
 def run():
     app.run(host='0.0.0.0', port=8080)
@@ -32,7 +41,7 @@ def keep_alive():
 keep_alive()
 
 # =====================================
-# START MESSAGE
+# START COMMAND
 # =====================================
 
 @bot.message_handler(commands=['start'])
@@ -56,57 +65,51 @@ Supported Examples:
     bot.reply_to(message, text)
 
 # =====================================
-# MAIN PRICE SYSTEM
+# CRYPTO PRICE SYSTEM
 # =====================================
 
 @bot.message_handler(func=lambda message: True)
 def crypto_price(message):
 
     try:
-
         user_input = message.text.lower().strip()
+
         parts = user_input.split()
 
+        # DEFAULT VALUES
         amount = 1
-        coin_query = ""
 
-        # -----------------------------
-        # INPUT DETECTION
-        # -----------------------------
+        # IF USER TYPES:
+        # btc
+        # 0.01 btc
+        # 10 eth
 
-        if len(parts) == 1:
+        try:
+            amount = float(parts[0])
+            coin_query = parts[1]
+        except:
+            coin_query = parts[0]
 
-            try:
-                float(parts[0])
+        # =====================================
+        # API HEADERS
+        # =====================================
 
-                bot.reply_to(
-                    message,
-                    "⚠️ Please enter a coin symbol.\nExample: BTC"
-                )
-                return
+        headers = {
+            "x-cg-demo-api-key": COINGECKO_API_KEY
+        }
 
-            except:
-                coin_query = parts[0]
-
-        elif len(parts) >= 2:
-
-            try:
-                amount = float(parts[0])
-                coin_query = parts[1]
-
-            except:
-                coin_query = parts[0]
-
-        # -----------------------------
-        # SEARCH COIN FROM COINGECKO
-        # -----------------------------
+        # =====================================
+        # SEARCH COIN
+        # =====================================
 
         search_url = f"https://api.coingecko.com/api/v3/search?query={coin_query}"
 
-        search_data = requests.get(search_url).json()
+        search_data = requests.get(
+            search_url,
+            headers=headers
+        ).json()
 
         if not search_data.get("coins"):
-
             bot.reply_to(
                 message,
                 "⚠️ Coin not found.\nTry another symbol."
@@ -119,16 +122,18 @@ def crypto_price(message):
         coin_name = coin["name"]
         coin_symbol = coin["symbol"].upper()
 
-        # -----------------------------
+        # =====================================
         # GET LIVE PRICE
-        # -----------------------------
+        # =====================================
 
         price_url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
 
-        price_data = requests.get(price_url).json()
+        price_data = requests.get(
+            price_url,
+            headers=headers
+        ).json()
 
         if coin_id not in price_data:
-
             bot.reply_to(
                 message,
                 "⚠️ Price unavailable right now."
@@ -139,32 +144,28 @@ def crypto_price(message):
 
         total_value = current_price * amount
 
-        # -----------------------------
+        # =====================================
         # FINAL REPLY
-        # -----------------------------
+        # =====================================
 
         reply = f"""
-💰 {amount} {coin_symbol}
+💎 {coin_name} ({coin_symbol})
 
-💵 USD Value: ${total_value:,.4f}
+💰 Amount: {amount}
 
-📈 Current Price:
-1 {coin_symbol} = ${current_price:,.4f}
+📊 Price: ${current_price:,.4f}
 
-🪙 {coin_name}
-
-🕒 {datetime.now().strftime('%I:%M %p')}
+💵 Total Value: ${total_value:,.4f}
 
 ⚡ Powered by CoinGecko
 """
 
         bot.reply_to(message, reply)
 
-    except:
-
+    except Exception as e:
         bot.reply_to(
             message,
-            "⚠️ Something went wrong.\nPlease try again."
+            f"⚠️ Error: {str(e)}"
         )
 
 # =====================================
