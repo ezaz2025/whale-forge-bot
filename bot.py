@@ -14,7 +14,7 @@ TOKEN = "8906538078:AAGgeXgItJTrkwHmii0fF3J9kE-Sr7o4vsE"
 # COINGECKO API KEY
 # =========================================
 
-API_KEY = "YOUR_COINGECKO_API_KEY"
+API_KEY = "CG-qFVb3uzSANjMmWopxQUiPVjC"
 
 # =========================================
 # START BOT
@@ -52,11 +52,10 @@ def start(message):
 
 Examples:
 • btc
+• 0.01 btc
+• 10 btc
 • eth
-• sol
-• xrp
-• sui
-• doge
+• 0.76 sol
 
 ⚡ Powered by Crypto Lab
 👑 Owner: Ezaz
@@ -73,7 +72,14 @@ def tracker(message):
 
     try:
 
-        coin = message.text.lower().strip()
+        text = message.text.lower().strip().split()
+
+        if len(text) == 2:
+            amount = float(text[0])
+            coin = text[1]
+        else:
+            amount = 1
+            coin = text[0]
 
         url = f"https://api.coingecko.com/api/v3/coins/{coin}"
 
@@ -82,11 +88,14 @@ def tracker(message):
         }
 
         response = requests.get(url, headers=headers)
-
         data = response.json()
+
+        if 'market_data' not in data:
+            raise Exception("Coin not found")
 
         name = data['name']
         symbol = data['symbol'].upper()
+
         price = data['market_data']['current_price']['usd']
         marketcap = data['market_data']['market_cap']['usd']
         change = data['market_data']['price_change_percentage_24h']
@@ -96,6 +105,8 @@ def tracker(message):
 
         rank = data['market_cap_rank']
 
+        total_value = amount * price
+
         time_now = datetime.now().strftime("%I:%M %p")
 
         msg = f"""
@@ -103,7 +114,10 @@ def tracker(message):
 
 🪙 Coin: {name} ({symbol})
 
-💰 Price: ${price:,.4f}
+💰 1 {symbol} = ${price:,.4f}
+
+🧮 {amount} {symbol} = ${total_value:,.4f}
+
 📈 24h Change: {change:.2f}%
 🏆 Rank: #{rank}
 
@@ -125,7 +139,7 @@ ${marketcap:,.0f}
 
         bot.reply_to(
             message,
-            "⚠️ Coin not found.\nExample: btc / eth / sol"
+            "⚠️ Coin not found.\n\nExamples:\nbtc\n0.01 btc\n10 eth"
         )
 
 # =========================================
